@@ -202,6 +202,15 @@ table.data{width:100%;border-collapse:collapse;font-size:14px;font-variant-numer
 table.data th,table.data td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border)}
 table.data th{color:var(--muted);font-weight:600;font-size:12px}
 
+/* ---------- Sync badge ---------- */
+.sync-badge{display:inline-flex;align-items:center;gap:6px;border:0;background:var(--surface-2);color:var(--text-2);font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.sync-badge[hidden]{display:none}
+.sync-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sync-badge[data-s="synced"]::before{background:#0ca30c}
+.sync-badge[data-s="syncing"]::before,.sync-badge[data-s="pending"]::before{background:var(--accent)}
+.sync-badge[data-s="error"]::before{background:var(--danger)}
+.btn:disabled{opacity:.55;cursor:default}
+
 /* ---------- Dialog & toast ---------- */
 dialog{border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);padding:20px;width:min(440px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(0,0,0,.45)}
@@ -216,7 +225,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="main">
     <header class="top">
       <h1 id="viewTitle">Home</h1>
-      <button class="icon-btn" data-act="openSettings" aria-label="Settings" id="gearBtn"></button>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="sync-badge" id="syncBadge" data-act="openSettings" hidden></button>
+        <button class="icon-btn" data-act="openSettings" aria-label="Settings" id="gearBtn"></button>
+      </div>
     </header>
     <main id="view" class="view"></main>
   </div>
@@ -241,8 +253,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <option value="lb">Pounds (lb)</option>
       </select>
     </label>
+    <div class="section-title">Sync</div>
+    <div id="syncPanel" class="stack"></div>
     <div class="section-title">Your data</div>
-    <p class="meta" style="margin:0">Everything is saved in this browser, on this device only. Export a backup now and then, and use Import to move your data to another device.</p>
+    <p class="meta" style="margin:0">Your data is always kept in this browser too, so the app works offline. Exporting a backup now and then is still a good idea.</p>
     <div class="row">
       <button class="btn ghost" data-act="exportData">Export backup</button>
       <button class="btn ghost" data-act="importData">Import backup</button>
@@ -256,16 +270,28 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <script>
 /* =========================================================
+   Sync setup: paste your Supabase project details here
+   (Supabase dashboard → Project Settings → API). The anon /
+   publishable key is designed to be public; your data is
+   protected by the row-level security rules in supabase-setup.sql.
+   Leave these blank to use the app on this device only.
+   ========================================================= */
+const SUPABASE_URL = 'https://mhovixsykerafmblwgco.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_E4XpSVXhHF4Dr_rvyNPlhw_AJUssglU';
+const SUPABASE_JS  = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js';
+
+/* =========================================================
    Storage
    ========================================================= */
 const KEY = 'myhub-data-v1';
 const LISTS = ['events','tasks','notes','groceries','meals','lifts'];
-const defaults = () => ({events:[],tasks:[],notes:[],groceries:[],meals:[],lifts:[],settings:{unit:'kg',theme:'system'}});
+const defaults = () => ({events:[],tasks:[],notes:[],groceries:[],meals:[],lifts:[],settings:{unit:'kg',theme:'system'},deleted:{}});
 
 function normalise(d){
   const base = defaults();
   const out = {...base, ...d, settings:{...base.settings, ...((d && d.settings) || {})}};
   LISTS.forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
+  if (!out.deleted || typeof out.deleted !== 'object') out.deleted = {};
   return out;
 }
 function load(){
@@ -274,9 +300,59 @@ function load(){
 }
 let db = load();
 let saveWarned = false;
-function save(){
+function localSave(){
   try { localStorage.setItem(KEY, JSON.stringify(db)); }
   catch (e) { if (!saveWarned) { toast("Couldn't save. Browser storage is unavailable."); saveWarned = true; } }
+}
+function save(){ stamp(); localSave(); schedulePush(); }
+
+/* ---------- Change tracking ----------
+   Every item gets an `_u` (last-updated) timestamp and deleted ids are kept as
+   tombstones, so two devices' edits can be merged item-by-item instead of one
+   device's copy overwriting the other's. Changes are detected by comparing each
+   item to a snapshot taken at the last save, so the rest of the app can keep
+   mutating `db` directly and just call save(). */
+let snap = new Map(), snapSettings = '';
+const stripU = x => { const {_u, ...r} = x; return JSON.stringify(r); };
+function rebuildSnap(){
+  snap = new Map();
+  LISTS.forEach(k => db[k].forEach(x => snap.set(x.id, stripU(x))));
+  snapSettings = stripU(db.settings);
+}
+function stamp(){
+  const now = Date.now(), seen = new Set();
+  LISTS.forEach(k => db[k].forEach(x => {
+    seen.add(x.id);
+    const j = stripU(x);
+    if (snap.get(x.id) !== j){ x._u = now; snap.set(x.id, j); }
+  }));
+  for (const id of [...snap.keys()]) if (!seen.has(id)){ db.deleted[id] = now; snap.delete(id); }
+  const sj = stripU(db.settings);
+  if (sj !== snapSettings){ db.settings._u = now; snapSettings = sj; }
+}
+rebuildSnap();
+
+const TOMBSTONE_TTL = 90 * 864e5;
+function merge(a, b){
+  const out = defaults(), cutoff = Date.now() - TOMBSTONE_TTL;
+  const del = {};
+  [a.deleted, b.deleted].forEach(d => Object.entries(d || {}).forEach(([id, t]) => { if (t > cutoff) del[id] = Math.max(del[id] || 0, t); }));
+  LISTS.forEach(k => {
+    const m = new Map();
+    [...a[k], ...b[k]].forEach(x => { const cur = m.get(x.id); if (!cur || (x._u || 0) > (cur._u || 0)) m.set(x.id, x); });
+    out[k] = [...m.values()].filter(x => !(del[x.id] >= (x._u || 0)));
+  });
+  out.settings = (b.settings._u || 0) > (a.settings._u || 0) ? b.settings : a.settings;
+  out.deleted = del;
+  return out;
+}
+// Order-independent fingerprint: equal signatures mean nothing needs syncing.
+function sig(d){
+  return JSON.stringify([
+    LISTS.map(k => d[k].map(x => x.id + ':' + (x._u || 0)).sort()),
+    Object.entries(d.deleted).map(([k, t]) => k + ':' + t).sort(),
+    d.settings._u || 0,
+  ]);
 }
 
 /* =========================================================
@@ -849,11 +925,164 @@ window.addEventListener('resize', () => {
 });
 
 /* =========================================================
+   Supabase sync
+   One row per user in `hub_data` holds the whole data blob. A sync pulls
+   that row, merges it with local data, and writes the result back,
+   guarded by a `rev` counter so two devices saving at once can't clobber
+   each other (the loser just re-pulls and merges again).
+   ========================================================= */
+let sb = null, user = null, channel = null;
+let remoteRev = 0, syncing = false, syncAgain = false, pushT = null, lastSync = 0;
+let syncState = {status:'off', msg:''};
+const syncConfigured = () => !!(SUPABASE_URL && SUPABASE_KEY);
+
+function setSync(status, msg = ''){
+  syncState = {status, msg};
+  if (status === 'synced') lastSync = Date.now();
+  const b = $('#syncBadge');
+  const labels = {synced:'Synced', syncing:'Syncing…', pending:'Saving…', offline:'Offline', error:'Sync error', signedout:'Sign in to sync'};
+  b.hidden = status === 'off';
+  b.dataset.s = status;
+  b.textContent = labels[status] || '';
+  b.title = statusText();
+  const t = $('#syncStatusText'); if (t) t.textContent = statusText();
+}
+function statusText(){
+  const {status, msg} = syncState;
+  if (status === 'synced') return 'Synced ' + relTime(lastSync) + '.';
+  if (status === 'syncing') return 'Syncing…';
+  if (status === 'pending') return 'Changes waiting to sync.';
+  if (status === 'offline') return "You're offline. Changes are saved here and will sync when you reconnect.";
+  if (status === 'error') return 'Sync problem: ' + msg;
+  if (status === 'signedout') return 'Not signed in. Data is only on this device.';
+  return '';
+}
+function schedulePush(){
+  if (!sb || !user) return;
+  clearTimeout(pushT); setSync('pending');
+  pushT = setTimeout(syncNow, 1200);
+}
+const isTyping = () => { const a = document.activeElement; return !!a && $('#view').contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
+let deferredRender = false;
+function refreshView(){
+  applyTheme();
+  if (isTyping()) deferredRender = true; else render();   // don't yank the keyboard away mid-edit
+}
+
+async function syncNow(){
+  if (!sb || !user) return;
+  if (syncing){ syncAgain = true; return; }
+  if (!navigator.onLine){ setSync('offline'); return; }
+  syncing = true; clearTimeout(pushT); setSync('syncing');
+  try {
+    for (let attempt = 0; ; attempt++){
+      if (attempt > 4) throw new Error('too many conflicting saves, try again');
+      const {data:row, error} = await sb.from('hub_data').select('data,rev').eq('user_id', user.id).maybeSingle();
+      if (error) throw error;
+      stamp();                                   // capture any edits made while we were waiting
+      const before = sig(db);
+      const remote = row ? normalise(row.data) : null;
+      if (remote){ db = merge(db, remote); rebuildSnap(); localSave(); if (sig(db) !== before) refreshView(); }
+      if (remote && sig(db) === sig(remote)){ remoteRev = row.rev; break; }   // already in sync
+      if (!row){
+        const {error:e} = await sb.from('hub_data').insert({user_id:user.id, data:db, rev:1});
+        if (!e){ remoteRev = 1; break; }
+        if (e.code === '23505') continue;        // another device created it first; merge with that
+        throw e;
+      }
+      const next = row.rev + 1;
+      const {data:upd, error:e} = await sb.from('hub_data')
+        .update({data:db, rev:next, updated_at:new Date().toISOString()})
+        .eq('user_id', user.id).eq('rev', row.rev).select('rev');
+      if (e) throw e;
+      if (upd && upd.length){ remoteRev = next; break; }
+      // rev moved on underneath us: loop to pull and merge the newer copy
+    }
+    setSync('synced');
+  } catch (e) {
+    setSync(navigator.onLine ? 'error' : 'offline', e.message || String(e));
+  } finally {
+    syncing = false;
+    if (syncAgain){ syncAgain = false; syncNow(); }
+  }
+}
+
+function subscribe(){
+  if (channel) sb.removeChannel(channel);
+  channel = sb.channel('hub-' + user.id)
+    .on('postgres_changes', {event:'*', schema:'public', table:'hub_data', filter:'user_id=eq.' + user.id}, p => {
+      if (p.new && p.new.rev === remoteRev) return;   // our own write echoing back
+      syncNow();
+    })
+    .subscribe();
+}
+
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.onload = res;
+    s.onerror = () => { s.remove(); rej(new Error("couldn't load the sync library")); };
+    document.head.appendChild(s);
+  });
+}
+async function initSync(){
+  if (!syncConfigured()){ setSync('off'); return; }
+  if (sb) return;
+  try { await loadScript(SUPABASE_JS); }
+  catch (e) { setSync(navigator.onLine ? 'error' : 'offline', e.message); return; }   // retried on 'online'
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  setSync('signedout');
+  sb.auth.onAuthStateChange((event, session) => {
+    const prevId = user && user.id;
+    user = session ? session.user : null;
+    // Supabase advises not calling its API inside this callback directly.
+    setTimeout(() => {
+      if (user && user.id !== prevId){ subscribe(); syncNow(); }
+      if (!user){ if (channel){ sb.removeChannel(channel); channel = null; } setSync('signedout'); }
+      renderSyncPanel();
+    }, 0);
+  });
+}
+
+function renderSyncPanel(){
+  const p = $('#syncPanel'); if (!p) return;
+  if (!syncConfigured()){
+    p.innerHTML = '<p class="meta" style="margin:0">Sync isn\'t set up. Add your Supabase project URL and key near the top of the script in index.html.</p>';
+    return;
+  }
+  if (!sb){ p.innerHTML = `<p class="meta" style="margin:0">${syncState.msg ? 'Sync unavailable: ' + esc(syncState.msg) : 'Connecting…'}</p>`; return; }
+  if (!user){
+    p.innerHTML = `<form data-form="syncAuth" class="stack">
+      <p class="meta" style="margin:0">Sign in to share your data between your phone and laptop. Anything already on this device is merged in, nothing is lost.</p>
+      <input type="email" name="email" placeholder="Email" required autocomplete="username" aria-label="Email">
+      <input type="password" name="password" placeholder="Password (6+ characters)" required minlength="6" autocomplete="current-password" aria-label="Password">
+      <div class="row"><button class="btn" value="in">Sign in</button><button class="btn ghost" value="up">Create account</button></div>
+    </form>`;
+    return;
+  }
+  p.innerHTML = `<p style="margin:0">Signed in as <b>${esc(user.email)}</b></p>
+    <p class="meta" style="margin:0" id="syncStatusText">${esc(statusText())}</p>
+    <div class="row"><button class="btn ghost" data-act="syncNow">Sync now</button><button class="btn ghost" data-act="signOut">Sign out</button></div>`;
+}
+
+window.addEventListener('online', () => { if (!sb) initSync(); else syncNow(); });
+window.addEventListener('offline', () => { if (sb && user) setSync('offline'); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(); });
+setInterval(() => { if (document.visibilityState === 'visible') syncNow(); }, 120000);   // fallback if live updates drop
+document.addEventListener('focusout', () => setTimeout(() => {
+  if (deferredRender && !isTyping()){ deferredRender = false; render(); }
+}, 0));
+
+/* =========================================================
    Event handling (delegated)
    ========================================================= */
 const ACT = {
   go: (el, id) => go(id),
-  openSettings(){ $('#setTheme').value = db.settings.theme; $('#setUnit').value = db.settings.unit; $('#settings').showModal(); },
+  openSettings(){ $('#setTheme').value = db.settings.theme; $('#setUnit').value = db.settings.unit; renderSyncPanel(); $('#settings').showModal(); },
+  syncNow(){ syncNow(); },
+  async signOut(){
+    if (!confirm('Sign out? Your data stays on this device but stops syncing.')) return;
+    await sb.auth.signOut(); toast('Signed out');
+  },
   closeSettings(){ $('#settings').close(); },
 
   calSelect(el, id){
@@ -941,13 +1170,30 @@ const ACT = {
   },
   importData(){ $('#importFile').click(); },
   wipeData(){
-    if (!confirm('Erase ALL data on this device? This cannot be undone.')) return;
+    if (!confirm(user ? 'Erase ALL data? You are signed in, so this also erases it from your other synced devices. This cannot be undone.'
+                      : 'Erase ALL data on this device? This cannot be undone.')) return;
     if (!confirm('Are you sure? Consider exporting a backup first.')) return;
     db = defaults(); save(); applyTheme(); $('#settings').close(); render(); toast('All data erased');
   },
 };
 
 const FORM = {
+  async syncAuth(f, fd, submitter){
+    const email = fd.get('email').trim(), password = fd.get('password');
+    const btns = f.querySelectorAll('button'); btns.forEach(b => b.disabled = true);
+    try {
+      if (submitter && submitter.value === 'up'){
+        const {data, error} = await sb.auth.signUp({email, password});
+        if (error) throw error;
+        if (!data.session) toast('Check your email to confirm your account, then sign in here');
+      } else {
+        const {error} = await sb.auth.signInWithPassword({email, password});
+        if (error) throw error;
+        toast('Signed in. Syncing…');
+      }
+    } catch (e) { toast(e.message || 'Sign-in failed'); }
+    finally { btns.forEach(b => b.disabled = false); }
+  },
   quickTask(f, fd){ if (addTask(fd.get('title'))){ render(); toast('Task added'); } },
   addTask(f, fd){
     if (!addTask(fd.get('title'), fd.get('due'), fd.get('priority'))) return;
@@ -1024,7 +1270,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('submit', e => {
   const f = e.target.closest('form[data-form]'); if (!f) return;
-  e.preventDefault(); FORM[f.dataset.form]?.(f, new FormData(f));
+  e.preventDefault(); FORM[f.dataset.form]?.(f, new FormData(f), e.submitter);
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-change]'); if (el) CHANGE[el.dataset.change]?.(el, el.dataset.id);
@@ -1064,6 +1310,7 @@ $('#closeBtn').innerHTML = I.x;
 applyTheme();
 { const v = location.hash.slice(1); state.view = VIEWS.some(x => x.id === v) ? v : 'home'; }
 render();
+initSync();
 </script>
 </body>
 </html>

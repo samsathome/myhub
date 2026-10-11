@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Hub</title>
+<meta name="description" content="Personal calendar, tasks, notes, groceries, meals and gym tracker.">
+<meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="My Hub">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a78d6'/%3E%3Cpath d='M18 34l9 9 19-21' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f6f6f3; --surface:#fff; --surface-2:#efeeea;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#898781;
+  --border:rgba(11,11,11,.10); --border-strong:rgba(11,11,11,.18);
+  --grid:#e1e0d9; --axis:#c3c2b7;
+  --accent:#2a78d6; --accent-soft:#e6f0fc;
+  --danger:#d03b3b; --danger-soft:#fbe9e9;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0d0d0d; --surface:#1a1a19; --surface-2:#262624;
+    --text:#fff; --text-2:#c3c2b7; --muted:#898781;
+    --border:rgba(255,255,255,.10); --border-strong:rgba(255,255,255,.18);
+    --grid:#2c2c2a; --axis:#383835;
+    --accent:#3987e5; --accent-soft:#1b2a3d;
+    --danger:#e66767; --danger-soft:#3a1d1d;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0d0d0d; --surface:#1a1a19; --surface-2:#262624;
+  --text:#fff; --text-2:#c3c2b7; --muted:#898781;
+  --border:rgba(255,255,255,.10); --border-strong:rgba(255,255,255,.18);
+  --grid:#2c2c2a; --axis:#383835;
+  --accent:#3987e5; --accent-soft:#1b2a3d;
+  --danger:#e66767; --danger-soft:#3a1d1d;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+h2,h3{margin:0}
+
+/* ---------- Layout ---------- */
+.app{min-height:100vh;min-height:100dvh}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--surface);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.nav .brand{display:none}
+.nav-btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border:0;background:none;color:var(--muted);font-size:11px;font-weight:500;border-radius:10px;cursor:pointer}
+.nav-btn svg{width:22px;height:22px}
+.nav-btn[aria-current="page"]{color:var(--accent)}
+.main{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.top h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.01em}
+.view{max-width:920px;margin:0 auto;padding:4px 16px 24px}
+@media (min-width:900px){
+  .app{display:grid;grid-template-columns:220px 1fr}
+  .nav{position:sticky;top:0;height:100vh;height:100dvh;flex-direction:column;gap:2px;border-top:0;border-right:1px solid var(--border);padding:20px 12px}
+  .nav .brand{display:block;font-weight:700;font-size:18px;padding:4px 12px 16px}
+  .nav-btn{flex:none;flex-direction:row;gap:12px;padding:10px 12px;font-size:15px}
+  .nav-btn:hover{background:var(--surface-2)}
+  .nav-btn[aria-current="page"]{background:var(--accent-soft)}
+  .main{padding-bottom:0}
+  .top{padding:20px 24px 12px}
+  .view{padding:4px 24px 40px}
+}
+
+/* ---------- Building blocks ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card h3{font-size:15px;font-weight:600;margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:0}
+.between{justify-content:space-between}
+.stack>*+*{margin-top:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-ex{display:grid;grid-template-columns:1fr 150px;gap:10px}
+.section-title{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin:16px 0 6px}
+.meta{font-size:13px;color:var(--muted)}
+.hint{font-size:13px;color:var(--text-2);margin-top:8px}
+.hint:empty{display:none}
+.empty{color:var(--muted);text-align:center;padding:24px 8px;font-size:14px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-2);font-weight:500}
+
+input:not([type=checkbox]),select,textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);font-size:16px;color:var(--text)}
+textarea{resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+input[type=checkbox]{width:22px;height:22px;margin:0;flex:none;accent-color:var(--accent);cursor:pointer}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid transparent;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn svg{width:18px;height:18px}
+.btn.ghost{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn.danger{background:none;border-color:var(--border-strong);color:var(--danger)}
+.btn.small{min-height:34px;padding:0 12px;font-size:14px}
+.icon-btn{display:inline-grid;place-items:center;width:40px;height:40px;border:0;background:none;border-radius:10px;color:var(--text-2);cursor:pointer;flex:none}
+.icon-btn:hover{background:var(--surface-2)}
+.icon-btn svg{width:20px;height:20px}
+.link{background:none;border:0;color:var(--accent);font-weight:600;font-size:14px;padding:8px 0;cursor:pointer}
+.hint .link{padding:0 4px}
+
+.seg{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:8px;font-size:14px;font-weight:500;color:var(--text-2);cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.seg.small{margin:0}
+.seg.small button{padding:4px 8px;font-size:13px}
+
+.list{list-style:none;margin:0;padding:0}
+.item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.item:last-child{border-bottom:0}
+.item .grow{flex:1;min-width:0}
+.title{overflow-wrap:anywhere}
+.item.done .title{text-decoration:line-through;color:var(--muted)}
+.when{font-size:13px;font-weight:600;color:var(--accent);min-width:60px;font-variant-numeric:tabular-nums}
+.prio{color:var(--danger);font-weight:800}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--text-2)}
+.badge.danger{color:var(--danger);background:var(--danger-soft)}
+.badge.accent{color:var(--accent);background:var(--accent-soft)}
+
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+@media (min-width:640px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer}
+.tile.static{cursor:default}
+.tile .num{display:block;font-size:28px;font-weight:700;line-height:1.15}
+.tile .num small{font-size:14px;font-weight:600;color:var(--text-2)}
+.tile .lbl{display:block;font-size:13px;color:var(--text-2)}
+.greet{margin:4px 0 0;color:var(--text-2);font-size:15px}
+.date-big{margin:0 0 14px;font-size:24px;font-weight:700;letter-spacing:-.01em}
+
+/* ---------- Calendar ---------- */
+.cal-head{display:flex;align-items:center;gap:4px;margin-bottom:8px}
+.cal-head h2{flex:1;font-size:18px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{font-size:12px;color:var(--muted);text-align:center;font-weight:600;padding:4px 0}
+.cal-day{min-height:52px;border:0;border-radius:10px;background:none;display:flex;flex-direction:column;align-items:center;padding:4px 0;gap:3px;cursor:pointer;font-size:15px}
+.cal-day:hover{background:var(--surface-2)}
+@media (min-width:900px){.cal-day{min-height:76px}}
+.cal-day.out{opacity:.4}
+.cal-day .dn{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;font-weight:500;font-variant-numeric:tabular-nums}
+.cal-day.today .dn{background:var(--accent);color:#fff;font-weight:700}
+.cal-day.sel{background:var(--accent-soft)}
+.dots{display:flex;gap:3px;height:6px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.dot.task{background:var(--muted)}
+
+/* ---------- Notes ---------- */
+.notes{display:grid;gap:12px}
+.notes>.card{margin:0}
+@media (max-width:899px){
+  .notes.has-sel .notes-list-pane{display:none}
+  .notes:not(.has-sel) .notes-editor-pane{display:none}
+}
+@media (min-width:900px){.notes{grid-template-columns:290px 1fr;align-items:start}.back-btn{visibility:hidden}}
+.note-item{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 12px;border-radius:10px;cursor:pointer}
+.note-item:hover{background:var(--surface-2)}
+.note-item.active{background:var(--accent-soft)}
+.note-item .nt,.note-item .np{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-item .nt{font-weight:600}
+.note-item .np{font-size:13px;color:var(--muted)}
+.notes-editor-pane input.note-title,.notes-editor-pane textarea.note-body{border:0;background:none;padding:6px 0;outline:none}
+.note-title{font-size:22px!important;font-weight:700;margin-top:8px}
+.note-body{min-height:55vh;resize:none;line-height:1.6}
+
+/* ---------- Meals ---------- */
+.meal-head{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;text-align:left;padding:0;cursor:pointer}
+.meal-head .grow{flex:1;min-width:0}
+.meal-name{display:block;font-weight:600;font-size:17px}
+.meal-head .meta{display:block}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.chev{color:var(--muted);transition:transform .15s;display:grid}
+.chev svg{width:20px;height:20px}
+.chev.open{transform:rotate(90deg)}
+.ing{margin:0;padding-left:20px}
+.ing li{padding:2px 0}
+.method{white-space:pre-wrap}
+
+/* ---------- Gym ---------- */
+.sets-head,.set-row{display:grid;grid-template-columns:30px 1fr 1fr 40px;gap:8px;align-items:center}
+.sets-head{font-size:12px;color:var(--muted);font-weight:600;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.set-row{margin-bottom:8px}
+.set-n{font-size:14px;color:var(--muted);font-weight:600;text-align:center}
+.chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.chart-head h3{margin-bottom:2px}
+.chart{position:relative;width:100%;min-height:260px}
+.chart svg{display:block;width:100%;height:260px;touch-action:pan-y;overflow:visible}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+.chart .bl{stroke:var(--axis);stroke-width:1}
+.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .mk{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.chart .cross{stroke:var(--axis);stroke-width:1}
+.chart .vl{fill:var(--text);font-size:12px;font-weight:600}
+.tip{position:absolute;top:0;left:0;pointer-events:none;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;padding:8px 10px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.14);max-width:220px;opacity:0;transition:opacity .1s}
+.tip b{display:block;font-size:16px}
+table.data{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;margin-top:8px}
+table.data th,table.data td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border)}
+table.data th{color:var(--muted);font-weight:600;font-size:12px}
+
+/* ---------- Dialog & toast ---------- */
+dialog{border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);padding:20px;width:min(440px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translate(-50%,16px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:.2s;z-index:50;max-width:calc(100vw - 32px);text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (min-width:900px){#toast{bottom:24px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav" id="nav" aria-label="Sections"></nav>
+  <div class="main">
+    <header class="top">
+      <h1 id="viewTitle">Home</h1>
+      <button class="icon-btn" data-act="openSettings" aria-label="Settings" id="gearBtn"></button>
+    </header>
+    <main id="view" class="view"></main>
+  </div>
+</div>
+
+<dialog id="settings" aria-labelledby="setTitle">
+  <div class="row between">
+    <h2 id="setTitle" style="font-size:20px">Settings</h2>
+    <button class="icon-btn" data-act="closeSettings" aria-label="Close" id="closeBtn"></button>
+  </div>
+  <div class="stack" style="margin-top:12px">
+    <label class="f">Appearance
+      <select id="setTheme" data-change="setTheme">
+        <option value="system">Match device</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
+    <label class="f">Weight unit (label only, doesn't convert old entries)
+      <select id="setUnit" data-change="setUnit">
+        <option value="kg">Kilograms (kg)</option>
+        <option value="lb">Pounds (lb)</option>
+      </select>
+    </label>
+    <div class="section-title">Your data</div>
+    <p class="meta" style="margin:0">Everything is saved in this browser, on this device only. Export a backup now and then, and use Import to move your data to another device.</p>
+    <div class="row">
+      <button class="btn ghost" data-act="exportData">Export backup</button>
+      <button class="btn ghost" data-act="importData">Import backup</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+    <button class="btn danger" data-act="wipeData">Erase all data</button>
+  </div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   Storage
+   ========================================================= */
+const KEY = 'myhub-data-v1';
+const LISTS = ['events','tasks','notes','groceries','meals','lifts'];
+const defaults = () => ({events:[],tasks:[],notes:[],groceries:[],meals:[],lifts:[],settings:{unit:'kg',theme:'system'}});
+
+function normalise(d){
+  const base = defaults();
+  const out = {...base, ...d, settings:{...base.settings, ...((d && d.settings) || {})}};
+  LISTS.forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
+  return out;
+}
+function load(){
+  try { const raw = localStorage.getItem(KEY); if (raw) return normalise(JSON.parse(raw)); } catch (e) {}
+  return defaults();
+}
+let db = load();
+let saveWarned = false;
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(db)); }
+  catch (e) { if (!saveWarned) { toast("Couldn't save. Browser storage is unavailable."); saveWarned = true; } }
+}
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function ymd(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function parseYmd(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function addDays(d, n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+const todayStr = () => ymd(new Date());
+const fmtDate = (s, o = {weekday:'short', day:'numeric', month:'short'}) => parseYmd(s).toLocaleDateString(undefined, o);
+function fmtTime(t){ const [h,m] = t.split(':').map(Number); return new Date(2000,0,1,h,m).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
+const fmtNum = n => Number(n).toLocaleString(undefined, {maximumFractionDigits:1});
+const round1 = n => Math.round(n * 10) / 10;
+function relTime(ts){
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' min ago';
+  if (m < 1440) return Math.round(m / 60) + ' h ago';
+  return new Date(ts).toLocaleDateString(undefined, {day:'numeric', month:'short'});
+}
+const byWhen = (a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''));
+let toastT;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
+}
+function seg(act, opts, cur, cls = ''){
+  return `<div class="seg ${cls}" role="group">${opts.map(([v,l]) => `<button type="button" data-act="${act}" data-id="${v}" aria-pressed="${v === cur}">${l}</button>`).join('')}</div>`;
+}
+
+const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const I = {
+  home: svg('<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'),
+  calendar: svg('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>'),
+  tasks: svg('<path d="m9 11 3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'),
+  notes: svg('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>'),
+  food: svg('<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.5L21 8H6"/>'),
+  gym: svg('<path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12"/>'),
+  gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  trash: svg('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>'),
+  x: svg('<path d="M18 6 6 18M6 6l12 12"/>'),
+  plus: svg('<path d="M12 5v14M5 12h14"/>'),
+  chevL: svg('<path d="m15 18-6-6 6-6"/>'),
+  chevR: svg('<path d="m9 18 6-6-6-6"/>'),
+};
+
+/* =========================================================
+   App state & routing
+   ========================================================= */
+const VIEWS = [
+  {id:'home',     label:'Home',     title:'Home',     icon:'home'},
+  {id:'calendar', label:'Calendar', title:'Calendar', icon:'calendar'},
+  {id:'tasks',    label:'Tasks',    title:'Tasks',    icon:'tasks'},
+  {id:'notes',    label:'Notes',    title:'Notes',    icon:'notes'},
+  {id:'food',     label:'Food',     title:'Groceries & Meals', icon:'food'},
+  {id:'gym',      label:'Gym',      title:'Gym',      icon:'gym'},
+];
+const _now = new Date();
+const state = {
+  view: 'home',
+  calMonth: new Date(_now.getFullYear(), _now.getMonth(), 1),
+  calSel: ymd(_now),
+  taskFilter: 'active',
+  noteId: null, noteSearch: '',
+  foodTab: 'groceries', mealEditing: null, mealOpen: null, mealSearch: '',
+  gymTab: 'log', liftDate: null, gymHistory: 10,
+  gymExercise: null, gymMetric: 'e1rm', gymRange: 'all', gymTable: false,
+};
+
+function go(v){
+  if (location.hash.slice(1) === v) { state.view = v; render(); }
+  else location.hash = v;
+}
+window.addEventListener('hashchange', () => {
+  const v = location.hash.slice(1);
+  state.view = VIEWS.some(x => x.id === v) ? v : 'home';
+  render(); window.scrollTo(0, 0);
+});
+
+function renderNav(){
+  $('#nav').innerHTML = '<div class="brand">My Hub</div>' + VIEWS.map(v =>
+    `<button class="nav-btn" data-act="go" data-id="${v.id}" ${v.id === state.view ? 'aria-current="page"' : ''}>${I[v.icon]}<span>${v.label}</span></button>`
+  ).join('');
+}
+const RENDER = {home:viewHome, calendar:viewCalendar, tasks:viewTasks, notes:viewNotes, food:viewFood, gym:viewGym};
+function render(){
+  const v = VIEWS.find(x => x.id === state.view);
+  $('#viewTitle').textContent = v.title;
+  document.title = v.title + ' · My Hub';
+  renderNav();
+  $('#view').innerHTML = RENDER[state.view]();
+  if (state.view === 'gym' && state.gymTab === 'progress') drawProgressChart();
+}
+
+/* =========================================================
+   Shared list items
+   ========================================================= */
+const PR = {high:0, normal:1, low:2};
+function taskSort(a, b){
+  if (a.done !== b.done) return a.done ? 1 : -1;
+  const ad = a.due || '9999', bd = b.due || '9999';
+  if (ad !== bd) return ad < bd ? -1 : 1;
+  if (PR[a.priority] !== PR[b.priority]) return PR[a.priority] - PR[b.priority];
+  return a.created - b.created;
+}
+function dueBadge(x){
+  const t = todayStr();
+  if (x.done) return `<span class="badge">${fmtDate(x.due)}</span>`;
+  if (x.due < t) return `<span class="badge danger">Overdue · ${fmtDate(x.due)}</span>`;
+  if (x.due === t) return `<span class="badge accent">Today</span>`;
+  if (x.due === ymd(addDays(new Date(), 1))) return `<span class="badge">Tomorrow</span>`;
+  return `<span class="badge">${fmtDate(x.due)}</span>`;
+}
+function taskItem(x){
+  const meta = [x.due ? dueBadge(x) : '', x.priority === 'low' ? '<span class="badge">Low</span>' : ''].filter(Boolean).join(' ');
+  return `<li class="item ${x.done ? 'done' : ''}">
+    <input type="checkbox" ${x.done ? 'checked' : ''} data-change="toggleTask" data-id="${x.id}" aria-label="Mark ${esc(x.title)} done">
+    <div class="grow"><div class="title">${x.priority === 'high' ? '<span class="prio" title="High priority">!</span> ' : ''}${esc(x.title)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
+    <button class="icon-btn" data-act="delTask" data-id="${x.id}" aria-label="Delete task">${I.trash}</button>
+  </li>`;
+}
+function eventItem(e, showDate){
+  const meta = [showDate ? fmtDate(e.date) : '', esc(e.notes || '')].filter(Boolean).join(' · ');
+  return `<li class="item">
+    <div class="when">${e.time ? fmtTime(e.time) : 'All day'}</div>
+    <div class="grow"><div class="title">${esc(e.title)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
+    <button class="icon-btn" data-act="delEvent" data-id="${e.id}" aria-label="Delete event">${I.trash}</button>
+  </li>`;
+}
+
+/* =========================================================
+   Home
+   ========================================================= */
+function viewHome(){
+  const t = todayStr(), now = new Date(), h = now.getHours();
+  const greet = h < 5 ? 'Up late' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const wkEnd = ymd(addDays(now, 7));
+  const evToday = db.events.filter(e => e.date === t).sort(byWhen);
+  const due = db.tasks.filter(x => !x.done && x.due && x.due <= t).sort(taskSort);
+  const upcoming = db.events.filter(e => e.date > t && e.date <= wkEnd).sort(byWhen);
+  const gymDays = new Set(db.lifts.filter(l => l.date.startsWith(t.slice(0, 7))).map(l => l.date)).size;
+  const tile = (v, n, l) => `<button class="tile" data-act="go" data-id="${v}"><span class="num">${n}</span><span class="lbl">${l}</span></button>`;
+  return `
+    <p class="greet">${greet}</p>
+    <p class="date-big">${now.toLocaleDateString(undefined, {weekday:'long', day:'numeric', month:'long'})}</p>
+    <div class="tiles">
+      ${tile('tasks', db.tasks.filter(x => !x.done).length, 'Open tasks')}
+      ${tile('calendar', db.events.filter(e => e.date >= t && e.date <= wkEnd).length, 'Events this week')}
+      ${tile('food', db.groceries.filter(g => !g.done).length, 'Groceries to buy')}
+      ${tile('gym', gymDays, 'Gym days this month')}
+    </div>
+    <section class="card"><h3>Today</h3>
+      ${evToday.length || due.length
+        ? `<ul class="list">${evToday.map(e => eventItem(e)).join('')}${due.map(taskItem).join('')}</ul>`
+        : '<div class="empty">Nothing scheduled or due today.</div>'}
+    </section>
+    <section class="card"><h3>Next 7 days</h3>
+      ${upcoming.length ? `<ul class="list">${upcoming.map(e => eventItem(e, true)).join('')}</ul>` : '<div class="empty">No events coming up.</div>'}
+    </section>
+    <form class="card row" data-form="quickTask">
+      <input class="grow" name="title" placeholder="Quick add a task…" required autocomplete="off" aria-label="New task">
+      <button class="btn">Add</button>
+    </form>`;
+}
+
+/* =========================================================
+   Calendar
+   ========================================================= */
+function viewCalendar(){
+  const m = state.calMonth, y = m.getFullYear(), mo = m.getMonth(), t = todayStr();
+  const offset = (new Date(y, mo, 1).getDay() + 6) % 7;           // Monday-first
+  const total = Math.ceil((offset + new Date(y, mo + 1, 0).getDate()) / 7) * 7;
+  const start = new Date(y, mo, 1 - offset);
+  const evBy = {}, tkBy = {};
+  db.events.forEach(e => evBy[e.date] = (evBy[e.date] || 0) + 1);
+  db.tasks.forEach(x => { if (x.due && !x.done) tkBy[x.due] = (tkBy[x.due] || 0) + 1; });
+
+  let cells = '';
+  for (let i = 0; i < total; i++){
+    const d = addDays(start, i), s = ymd(d), n = evBy[s] || 0;
+    const cls = ['cal-day', d.getMonth() !== mo && 'out', s === t && 'today', s === state.calSel && 'sel'].filter(Boolean).join(' ');
+    const dots = '<i class="dot"></i>'.repeat(Math.min(n, 3)) + (tkBy[s] ? '<i class="dot task"></i>' : '');
+    const label = d.toLocaleDateString(undefined, {weekday:'long', day:'numeric', month:'long'}) + (n ? `, ${n} event${n > 1 ? 's' : ''}` : '') + (tkBy[s] ? `, ${tkBy[s]} task${tkBy[s] > 1 ? 's' : ''} due` : '');
+    cells += `<button class="${cls}" data-act="calSelect" data-id="${s}" aria-label="${label}" aria-pressed="${s === state.calSel}"><span class="dn">${d.getDate()}</span><span class="dots">${dots}</span></button>`;
+  }
+  const sel = state.calSel;
+  const ev = db.events.filter(e => e.date === sel).sort(byWhen);
+  const tk = db.tasks.filter(x => x.due === sel).sort(taskSort);
+  return `
+    <section class="card">
+      <div class="cal-head">
+        <button class="icon-btn" data-act="calNav" data-id="-1" aria-label="Previous month">${I.chevL}</button>
+        <h2>${m.toLocaleDateString(undefined, {month:'long', year:'numeric'})}</h2>
+        <button class="btn ghost small" data-act="calToday">Today</button>
+        <button class="icon-btn" data-act="calNav" data-id="1" aria-label="Next month">${I.chevR}</button>
+      </div>
+      <div class="cal-grid">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<div class="cal-dow">${d}</div>`).join('')}${cells}</div>
+    </section>
+    <section class="card">
+      <h3>${fmtDate(sel, {weekday:'long', day:'numeric', month:'long'})}</h3>
+      ${ev.length || tk.length
+        ? `<ul class="list">${ev.map(e => eventItem(e)).join('')}${tk.map(taskItem).join('')}</ul>`
+        : '<div class="empty">Nothing on this day.</div>'}
+      <form data-form="addEvent" class="stack" autocomplete="off">
+        <div class="section-title">Add event</div>
+        <input name="title" placeholder="Event title" required aria-label="Event title">
+        <div class="grid2">
+          <label class="f">Time (optional)<input type="time" name="time"></label>
+          <label class="f">Date<input type="date" name="date" value="${sel}" required></label>
+        </div>
+        <input name="notes" placeholder="Notes or location (optional)" aria-label="Event notes">
+        <button class="btn">Add event</button>
+      </form>
+    </section>`;
+}
+
+/* =========================================================
+   Tasks
+   ========================================================= */
+function viewTasks(){
+  const f = state.taskFilter;
+  const list = db.tasks.filter(x => f === 'all' || (f === 'done' ? x.done : !x.done))
+    .sort(f === 'done' ? (a, b) => (b.doneAt || 0) - (a.doneAt || 0) : taskSort);
+  const doneCount = db.tasks.filter(x => x.done).length;
+  return `
+    <form class="card stack" data-form="addTask" autocomplete="off">
+      <input name="title" placeholder="What needs doing?" required aria-label="Task">
+      <div class="grid2">
+        <label class="f">Due date<input type="date" name="due"></label>
+        <label class="f">Priority<select name="priority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></label>
+      </div>
+      <button class="btn">Add task</button>
+    </form>
+    ${seg('taskFilter', [['active','To do'],['done','Done'],['all','All']], f)}
+    <section class="card">
+      ${list.length ? `<ul class="list">${list.map(taskItem).join('')}</ul>`
+        : `<div class="empty">${f === 'done' ? 'No completed tasks yet.' : 'All clear. Nothing to do.'}</div>`}
+    </section>
+    ${doneCount && f !== 'active' ? `<button class="btn danger" data-act="clearDone">Clear ${doneCount} completed</button>` : ''}`;
+}
+function addTask(title, due, priority){
+  title = String(title || '').trim(); if (!title) return false;
+  db.tasks.push({id:uid(), title, due:due || '', priority:priority || 'normal', done:false, created:Date.now()});
+  save(); return true;
+}
+
+/* =========================================================
+   Notes
+   ========================================================= */
+function notesListHTML(){
+  const q = state.noteSearch.trim().toLowerCase();
+  const list = db.notes.filter(n => !q || (n.title + ' ' + n.body).toLowerCase().includes(q)).sort((a, b) => b.updated - a.updated);
+  if (!list.length) return `<div class="empty">${db.notes.length ? 'No matching notes.' : 'No notes yet.'}</div>`;
+  return list.map(n => `<button class="note-item ${n.id === state.noteId ? 'active' : ''}" data-act="openNote" data-id="${n.id}">
+    <span class="nt">${esc(n.title || 'Untitled')}</span>
+    <span class="np">${relTime(n.updated)} · ${esc((n.body || '').slice(0, 90).replace(/\s+/g, ' ') || 'No content')}</span>
+  </button>`).join('');
+}
+function viewNotes(){
+  const n = db.notes.find(x => x.id === state.noteId);
+  return `<div class="notes ${n ? 'has-sel' : ''}">
+    <section class="card notes-list-pane">
+      <div class="row" style="margin-bottom:8px">
+        <input class="grow" type="search" placeholder="Search notes" value="${esc(state.noteSearch)}" data-input="noteSearch" aria-label="Search notes">
+        <button class="btn" data-act="newNote">${I.plus}New</button>
+      </div>
+      <div id="notesList">${notesListHTML()}</div>
+    </section>
+    <section class="card notes-editor-pane">${n ? `
+      <div class="row between">
+        <button class="btn ghost small back-btn" data-act="closeNote">${I.chevL}Notes</button>
+        <span class="meta" id="noteMeta">Edited ${relTime(n.updated)}</span>
+        <button class="icon-btn" data-act="delNote" data-id="${n.id}" aria-label="Delete note">${I.trash}</button>
+      </div>
+      <input class="note-title" placeholder="Title" value="${esc(n.title)}" data-input="noteTitle" aria-label="Note title">
+      <textarea class="note-body" placeholder="Start writing…" data-input="noteBody" aria-label="Note">${esc(n.body)}</textarea>`
+      : '<div class="empty">Select a note, or create a new one.</div>'}
+    </section>
+  </div>`;
+}
+function purgeEmptyNotes(keepId){
+  db.notes = db.notes.filter(n => n.id === keepId || n.title.trim() || n.body.trim());
+}
+let noteSaveT;
+function editNote(patch){
+  const n = db.notes.find(x => x.id === state.noteId); if (!n) return;
+  Object.assign(n, patch, {updated: Date.now()});
+  clearTimeout(noteSaveT); noteSaveT = setTimeout(save, 300);
+  $('#notesList').innerHTML = notesListHTML();
+  const m = $('#noteMeta'); if (m) m.textContent = 'Edited just now';
+}
+
+/* =========================================================
+   Food: groceries & meals
+   ========================================================= */
+function viewFood(){
+  return seg('foodTab', [['groceries','Grocery list'],['meals','Saved meals']], state.foodTab)
+    + (state.foodTab === 'groceries' ? groceriesHTML() : mealsHTML());
+}
+function groceriesHTML(){
+  const todo = db.groceries.filter(g => !g.done), got = db.groceries.filter(g => g.done);
+  const row = g => `<li class="item ${g.done ? 'done' : ''}">
+    <input type="checkbox" id="g-${g.id}" ${g.done ? 'checked' : ''} data-change="toggleGrocery" data-id="${g.id}">
+    <label for="g-${g.id}" class="grow title">${esc(g.name)}${g.qty ? ` <span class="meta">· ${esc(g.qty)}</span>` : ''}</label>
+    <button class="icon-btn" data-act="delGrocery" data-id="${g.id}" aria-label="Remove ${esc(g.name)}">${I.x}</button>
+  </li>`;
+  return `
+    <form class="card row" data-form="addGrocery" autocomplete="off">
+      <input class="grow" name="name" placeholder="Add item…" required aria-label="Item">
+      <input name="qty" placeholder="Qty" style="width:80px;flex:none" aria-label="Quantity">
+      <button class="btn">Add</button>
+    </form>
+    <section class="card">
+      ${todo.length ? `<ul class="list">${todo.map(row).join('')}</ul>`
+        : `<div class="empty">${got.length ? "Everything's ticked off." : 'Your list is empty. Add items above, or send a saved meal’s ingredients here.'}</div>`}
+      ${got.length ? `<div class="section-title">In the trolley (${got.length})</div><ul class="list">${got.map(row).join('')}</ul>` : ''}
+    </section>
+    ${db.groceries.length ? `<div class="row">
+      ${todo.length ? '<button class="btn ghost" data-act="copyGroceries">Copy list</button>' : ''}
+      ${got.length ? '<button class="btn ghost" data-act="clearGot">Clear ticked</button>' : ''}
+      <button class="btn danger" data-act="clearGroceries">Clear all</button>
+    </div>` : ''}`;
+}
+function mealsHTML(){
+  const e = state.mealEditing, m = e && e !== 'new' ? db.meals.find(x => x.id === e) : null;
+  if (e) return `<form class="card stack" data-form="saveMeal" autocomplete="off">
+      <h3>${m ? 'Edit meal' : 'New meal'}</h3>
+      <input name="name" placeholder="Meal name" required value="${esc(m?.name || '')}" aria-label="Meal name">
+      <input name="tags" placeholder="Tags, comma separated (e.g. dinner, quick)" value="${esc((m?.tags || []).join(', '))}" aria-label="Tags">
+      <label class="f">Ingredients, one per line<textarea name="ingredients" rows="7" placeholder="500g chicken thigh&#10;1 onion&#10;2 cloves garlic">${esc((m?.ingredients || []).join('\n'))}</textarea></label>
+      <label class="f">Method / notes<textarea name="method" rows="5">${esc(m?.method || '')}</textarea></label>
+      <div class="row"><button class="btn">Save meal</button><button type="button" class="btn ghost" data-act="cancelMeal">Cancel</button></div>
+    </form>`;
+  return `<div class="row" style="margin-bottom:12px">
+      <input class="grow" type="search" placeholder="Search meals or ingredients" value="${esc(state.mealSearch)}" data-input="mealSearch" aria-label="Search meals">
+      <button class="btn" data-act="newMeal">${I.plus}New meal</button>
+    </div>
+    <div id="mealsList">${mealsListHTML()}</div>`;
+}
+function mealsListHTML(){
+  const q = state.mealSearch.trim().toLowerCase();
+  const list = db.meals.filter(m => !q || [m.name, ...m.tags, ...m.ingredients].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  if (!list.length) return `<div class="card empty">${db.meals.length ? 'No matching meals.' : 'No saved meals yet. Save your go-to recipes, then send their ingredients straight to your grocery list.'}</div>`;
+  return list.map(m => {
+    const open = state.mealOpen === m.id, n = m.ingredients.length;
+    return `<article class="card">
+      <button class="meal-head" data-act="toggleMeal" data-id="${m.id}" aria-expanded="${open}">
+        <span class="grow">
+          <span class="meal-name">${esc(m.name)}</span>
+          <span class="meta">${n} ingredient${n === 1 ? '' : 's'}</span>
+          ${m.tags.length ? `<span class="tags">${m.tags.map(t => `<span class="badge">${esc(t)}</span>`).join('')}</span>` : ''}
+        </span>
+        <span class="chev ${open ? 'open' : ''}">${I.chevR}</span>
+      </button>
+      ${open ? `<div>
+        ${n ? `<div class="section-title">Ingredients</div><ul class="ing">${m.ingredients.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+        ${m.method ? `<div class="section-title">Method</div><div class="method">${esc(m.method)}</div>` : ''}
+        <div class="row" style="margin-top:14px">
+          ${n ? `<button class="btn" data-act="mealToGroceries" data-id="${m.id}">Add to grocery list</button>` : ''}
+          <button class="btn ghost" data-act="editMeal" data-id="${m.id}">Edit</button>
+          <button class="btn danger" data-act="delMeal" data-id="${m.id}">Delete</button>
+        </div>
+      </div>` : ''}
+    </article>`;
+  }).join('');
+}
+
+/* =========================================================
+   Gym
+   ========================================================= */
+const EXERCISES = ['Bench Press','Squat','Deadlift','Overhead Press','Barbell Row','Pull-up','Chin-up','Romanian Deadlift','Incline Bench Press','Incline Dumbbell Press','Lat Pulldown','Seated Cable Row','Leg Press','Leg Curl','Leg Extension','Hip Thrust','Lunge','Bicep Curl','Hammer Curl','Tricep Pushdown','Lateral Raise','Dips','Calf Raise'];
+const METRICS = {
+  e1rm:   {label:'Est. 1RM',  long:'Estimated 1-rep max'},
+  top:    {label:'Heaviest',  long:'Heaviest weight lifted'},
+  volume: {label:'Volume',    long:'Total volume (weight × reps)'},
+  reps:   {label:'Best reps', long:'Most reps in a single set'},
+};
+const RANGES = [['1m','1M',30],['3m','3M',91],['6m','6M',182],['1y','1Y',365],['all','All',0]];
+const e1rm = s => !s.w ? 0 : s.r === 1 ? s.w : s.w * (1 + s.r / 30);   // Epley formula
+const setStr = (s, u) => `${s.w ? fmtNum(s.w) + (u ? ' ' + u : '') : 'BW'} × ${s.r}`;
+const sameEx = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+function exerciseNames(){                     // most recently trained first
+  const seen = new Map();
+  [...db.lifts].sort((a, b) => b.date.localeCompare(a.date) || b.created - a.created)
+    .forEach(l => { const k = l.exercise.toLowerCase(); if (!seen.has(k)) seen.set(k, l.exercise); });
+  return [...seen.values()];
+}
+function seriesFor(name){                     // one point per training day
+  const by = {};
+  db.lifts.forEach(l => { if (sameEx(l.exercise, name)) (by[l.date] = by[l.date] || []).push(...l.sets); });
+  return Object.keys(by).sort().map(date => {
+    const s = by[date];
+    return {date, sets:s, e1rm:Math.max(...s.map(e1rm)), top:Math.max(...s.map(x => x.w)),
+            volume:s.reduce((a, x) => a + x.w * x.r, 0), reps:Math.max(...s.map(x => x.r))};
+  });
+}
+function rangeFilter(pts){
+  const r = RANGES.find(x => x[0] === state.gymRange);
+  if (!r || !r[2]) return pts;
+  const cut = ymd(addDays(new Date(), -r[2]));
+  return pts.filter(p => p.date >= cut);
+}
+
+function viewGym(){
+  return seg('gymTab', [['log','Log workout'],['progress','Progress']], state.gymTab)
+    + (state.gymTab === 'log' ? gymLogHTML() : gymProgressHTML());
+}
+function setRowHTML(n, w = '', r = ''){
+  return `<div class="set-row">
+    <span class="set-n">${n}</span>
+    <input type="number" name="w" inputmode="decimal" step="any" min="0" placeholder="${db.settings.unit}" value="${w}" aria-label="Weight, set ${n}">
+    <input type="number" name="r" inputmode="numeric" step="1" min="1" placeholder="reps" value="${r}" aria-label="Reps, set ${n}" required>
+    <button type="button" class="icon-btn" data-act="removeSetRow" aria-label="Remove set ${n}">${I.x}</button>
+  </div>`;
+}
+function renumberSets(){
+  document.querySelectorAll('#setRows .set-row').forEach((row, i) => { row.querySelector('.set-n').textContent = i + 1; });
+}
+function gymLogHTML(){
+  const names = exerciseNames();
+  const all = [...names, ...EXERCISES.filter(e => !names.some(n => sameEx(n, e)))];
+  return `<form class="card" data-form="addLift" autocomplete="off">
+      <div class="grid-ex">
+        <label class="f">Exercise<input name="exercise" list="exList" placeholder="e.g. Bench Press" required data-input="liftExercise"></label>
+        <label class="f">Date<input type="date" name="date" value="${state.liftDate || todayStr()}" required></label>
+      </div>
+      <datalist id="exList">${all.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+      <div id="lastTime" class="hint"></div>
+      <div class="sets-head"><span>Set</span><span>Weight (${db.settings.unit})</span><span>Reps</span><span></span></div>
+      <div id="setRows">${setRowHTML(1)}</div>
+      <div class="row between" style="margin-top:4px">
+        <button type="button" class="btn ghost" data-act="addSetRow">${I.plus}Add set</button>
+        <button class="btn">Save exercise</button>
+      </div>
+      <p class="meta" style="margin:10px 0 0">Leave weight blank for bodyweight moves. New sets copy the previous one.</p>
+    </form>
+    ${gymHistoryHTML()}`;
+}
+function gymHistoryHTML(){
+  if (!db.lifts.length) return '<div class="card empty">No workouts logged yet. Add your first exercise above.</div>';
+  const by = {}; db.lifts.forEach(l => (by[l.date] = by[l.date] || []).push(l));
+  const dates = Object.keys(by).sort().reverse(), shown = dates.slice(0, state.gymHistory);
+  const thisYear = todayStr().slice(0, 4), u = db.settings.unit;
+  return '<div class="section-title">History</div>' + shown.map(d => `<section class="card">
+      <h3>${fmtDate(d, {weekday:'long', day:'numeric', month:'short', year: d.slice(0, 4) !== thisYear ? 'numeric' : undefined})}</h3>
+      <ul class="list">${by[d].sort((a, b) => a.created - b.created).map(l => `<li class="item">
+        <div class="grow"><div class="title"><b>${esc(l.exercise)}</b></div><div class="meta">${l.sets.map(s => setStr(s, u)).join(' · ')}</div></div>
+        <button class="icon-btn" data-act="delLift" data-id="${l.id}" aria-label="Delete ${esc(l.exercise)} entry">${I.trash}</button>
+      </li>`).join('')}</ul>
+    </section>`).join('')
+    + (dates.length > shown.length ? '<button class="btn ghost" style="width:100%" data-act="moreHistory">Show older workouts</button>' : '');
+}
+function updateLastTime(name){
+  const el = $('#lastTime'); if (!el) return;
+  const k = name.trim();
+  const last = k && [...db.lifts].filter(l => sameEx(l.exercise, k)).sort((a, b) => b.date.localeCompare(a.date) || b.created - a.created)[0];
+  el.innerHTML = last ? `Last time (${fmtDate(last.date)}): ${last.sets.map(s => setStr(s, db.settings.unit)).join(', ')}
+    <button type="button" class="link" data-act="useLast" data-id="${last.id}">Use these sets</button>` : '';
+}
+
+function gymProgressHTML(){
+  const names = exerciseNames();
+  if (!names.length) return `<div class="card empty">Log some workouts and your progress charts will show up here.<br><br><button class="btn" data-act="gymTab" data-id="log">Log a workout</button></div>`;
+  if (!state.gymExercise || !names.includes(state.gymExercise)) state.gymExercise = names[0];
+  const all = seriesFor(state.gymExercise), u = db.settings.unit, M = METRICS[state.gymMetric];
+  const allSets = all.flatMap(p => p.sets);
+  const bestE = Math.max(...allSets.map(e1rm));
+  const heavy = allSets.reduce((b, s) => (s.w > b.w || (s.w === b.w && s.r > b.r)) ? s : b, allSets[0]);
+  const pts = rangeFilter(all);
+  return `<section class="card">
+      <label class="f">Exercise<select data-change="gymExercise">${names.map(n => `<option ${n === state.gymExercise ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+    </section>
+    <div class="tiles">
+      <div class="tile static"><span class="lbl">Best est. 1RM</span><span class="num">${bestE ? fmtNum(round1(bestE)) + `<small> ${u}</small>` : '–'}</span></div>
+      <div class="tile static"><span class="lbl">Heaviest set</span><span class="num">${heavy.w ? fmtNum(heavy.w) + `<small> ${u} × ${heavy.r}</small>` : `${heavy.r}<small> reps</small>`}</span></div>
+      <div class="tile static"><span class="lbl">Sessions</span><span class="num">${all.length}</span></div>
+      <div class="tile static"><span class="lbl">Last trained</span><span class="num">${fmtDate(all[all.length - 1].date, {day:'numeric', month:'short'})}</span></div>
+    </div>
+    ${seg('gymMetric', Object.entries(METRICS).map(([k, v]) => [k, v.label]), state.gymMetric)}
+    <section class="card">
+      <div class="chart-head">
+        <div><h3>${M.long}</h3><div class="meta">${esc(state.gymExercise)} · ${pts.length} session${pts.length === 1 ? '' : 's'}</div></div>
+        ${seg('gymRange', RANGES.map(r => [r[0], r[1]]), state.gymRange, 'small')}
+      </div>
+      <div id="chart" class="chart" role="img" aria-label="${M.long} over time for ${esc(state.gymExercise)}"></div>
+      <button class="link" data-act="gymTable">${state.gymTable ? 'Hide' : 'Show'} data table</button>
+      ${state.gymTable ? `<table class="data"><thead><tr><th>Date</th><th>${M.label}</th><th>Sets</th></tr></thead><tbody>
+        ${[...pts].reverse().map(p => `<tr><td>${fmtDate(p.date, {day:'numeric', month:'short', year:'2-digit'})}</td><td>${fmtNum(round1(p[state.gymMetric]))}</td><td>${p.sets.map(s => setStr(s)).join(', ')}</td></tr>`).join('')}
+      </tbody></table>` : ''}
+    </section>`;
+}
+
+/* ---------- Chart (hand-rolled SVG line chart) ---------- */
+function niceTicks(min, max, n = 4){
+  if (min === max){ const pad = Math.abs(min) * 0.1 || 1; min = Math.max(0, min - pad); max += pad; }
+  const raw = (max - min) / n, mag = 10 ** Math.floor(Math.log10(raw)), norm = raw / mag;
+  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, ticks = [];
+  for (let v = lo; v <= hi + step / 2; v += step) ticks.push(+v.toFixed(6));
+  return {lo, hi, ticks};
+}
+function drawProgressChart(){
+  const el = $('#chart'); if (!el || !state.gymExercise) return;
+  const metric = state.gymMetric;
+  const pts = rangeFilter(seriesFor(state.gymExercise)).map(p => ({...p, v: round1(p[metric])}));
+  drawChart(el, pts, metric === 'reps' ? 'reps' : db.settings.unit);
+}
+function drawChart(el, pts, unit){
+  if (!pts.length){ el.innerHTML = '<div class="empty">No sessions in this time range.</div>'; return; }
+  const W = Math.max(280, el.clientWidth), H = 260, m = {l:44, r:20, t:24, b:28}, DAY = 864e5;
+  const ts = pts.map(p => parseYmd(p.date).getTime());
+  let x0 = ts[0], x1 = ts[ts.length - 1];
+  if (x0 === x1){ x0 -= 3 * DAY; x1 += 3 * DAY; }
+  const vs = pts.map(p => p.v), {lo, hi, ticks} = niceTicks(Math.min(...vs), Math.max(...vs));
+  const X = t => m.l + (t - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = v => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+
+  let g = '';
+  ticks.forEach((v, i) => {
+    const y = Y(v);
+    g += `<line class="${i === 0 ? 'bl' : 'gl'}" x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}"/>`
+       + `<text class="ax" x="${m.l - 8}" y="${y}" text-anchor="end" dominant-baseline="middle">${fmtNum(v)}</text>`;
+  });
+  const sameYear = new Date(x0).getFullYear() === new Date(x1).getFullYear();
+  const xFmt = sameYear ? {day:'numeric', month:'short'} : {month:'short', year:'2-digit'};
+  const nx = W < 480 ? 3 : 5;
+  const xt = pts.length === 1 ? [ts[0]] : Array.from({length:nx}, (_, i) => x0 + (x1 - x0) * i / (nx - 1));
+  xt.forEach((t, i) => {
+    const anchor = xt.length === 1 ? 'middle' : i === 0 ? 'start' : i === xt.length - 1 ? 'end' : 'middle';
+    g += `<text class="ax" x="${X(t)}" y="${H - 6}" text-anchor="${anchor}">${new Date(t).toLocaleDateString(undefined, xFmt)}</text>`;
+  });
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(ts[i]).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+  const marks = pts.length <= 40 ? pts.map((p, i) => `<circle class="mk" cx="${X(ts[i])}" cy="${Y(p.v)}" r="4"/>`).join('') : '';
+  const li = pts.length - 1;
+  const lastLbl = `<text class="vl" x="${X(ts[li])}" y="${Y(pts[li].v) - 11}" text-anchor="${pts.length === 1 ? 'middle' : 'end'}">${fmtNum(pts[li].v)}</text>`;
+
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}<path class="ln" d="${d}"/>${marks}${lastLbl}
+    <line class="cross" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>
+    <circle class="mk hl" r="6" visibility="hidden"/>
+    <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/></svg><div class="tip" aria-hidden="true"></div>`;
+
+  const s = el.querySelector('svg'), cross = s.querySelector('.cross'), hl = s.querySelector('.hl'), tip = el.querySelector('.tip');
+  const show = cx => {
+    const r = s.getBoundingClientRect(), px = (cx - r.left) * W / r.width;
+    let bi = 0, bd = Infinity;
+    ts.forEach((t, i) => { const dd = Math.abs(X(t) - px); if (dd < bd){ bd = dd; bi = i; } });
+    const p = pts[bi], x = X(ts[bi]), y = Y(p.v);
+    cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('visibility', 'visible');
+    hl.setAttribute('cx', x); hl.setAttribute('cy', y); hl.setAttribute('visibility', 'visible');
+    tip.innerHTML = `<div class="meta">${fmtDate(p.date, {weekday:'short', day:'numeric', month:'short', year:'numeric'})}</div><b>${fmtNum(p.v)} ${unit}</b><div class="meta">${p.sets.map(z => setStr(z)).join(', ')}</div>`;
+    tip.style.opacity = 1;
+    const tw = tip.offsetWidth, th = tip.offsetHeight, sx = x * r.width / W, sy = y * r.height / H;
+    tip.style.left = Math.min(Math.max(sx - tw / 2, 0), r.width - tw) + 'px';
+    tip.style.top = (sy - th - 14 < 0 ? sy + 14 : sy - th - 14) + 'px';
+  };
+  const hide = () => { cross.setAttribute('visibility', 'hidden'); hl.setAttribute('visibility', 'hidden'); tip.style.opacity = 0; };
+  s.addEventListener('pointermove', e => show(e.clientX));
+  s.addEventListener('pointerdown', e => show(e.clientX));
+  s.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+}
+let resizeT;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { if (state.view === 'gym' && state.gymTab === 'progress') drawProgressChart(); }, 150);
+});
+
+/* =========================================================
+   Event handling (delegated)
+   ========================================================= */
+const ACT = {
+  go: (el, id) => go(id),
+  openSettings(){ $('#setTheme').value = db.settings.theme; $('#setUnit').value = db.settings.unit; $('#settings').showModal(); },
+  closeSettings(){ $('#settings').close(); },
+
+  calSelect(el, id){
+    state.calSel = id; const d = parseYmd(id);
+    if (d.getMonth() !== state.calMonth.getMonth()) state.calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+    render();
+  },
+  calNav(el, id){ const m = state.calMonth; state.calMonth = new Date(m.getFullYear(), m.getMonth() + Number(id), 1); render(); },
+  calToday(){ const n = new Date(); state.calMonth = new Date(n.getFullYear(), n.getMonth(), 1); state.calSel = ymd(n); render(); },
+  delEvent(el, id){ db.events = db.events.filter(e => e.id !== id); save(); render(); toast('Event deleted'); },
+
+  delTask(el, id){ db.tasks = db.tasks.filter(x => x.id !== id); save(); render(); toast('Task deleted'); },
+  taskFilter(el, id){ state.taskFilter = id; render(); },
+  clearDone(){ if (!confirm('Delete all completed tasks?')) return; db.tasks = db.tasks.filter(x => !x.done); save(); render(); },
+
+  newNote(){
+    purgeEmptyNotes();
+    const n = {id:uid(), title:'', body:'', updated:Date.now()};
+    db.notes.push(n); state.noteId = n.id; state.noteSearch = ''; save(); render();
+    $('.note-title')?.focus();
+  },
+  openNote(el, id){ purgeEmptyNotes(id); state.noteId = id; save(); render(); },
+  closeNote(){ state.noteId = null; purgeEmptyNotes(); save(); render(); },
+  delNote(el, id){
+    const n = db.notes.find(x => x.id === id);
+    if ((n.title.trim() || n.body.trim()) && !confirm('Delete this note?')) return;
+    db.notes = db.notes.filter(x => x.id !== id); state.noteId = null; save(); render();
+  },
+
+  foodTab(el, id){ state.foodTab = id; state.mealEditing = null; render(); },
+  delGrocery(el, id){ db.groceries = db.groceries.filter(g => g.id !== id); save(); render(); },
+  clearGot(){ db.groceries = db.groceries.filter(g => !g.done); save(); render(); },
+  clearGroceries(){ if (!confirm('Clear the whole grocery list?')) return; db.groceries = []; save(); render(); },
+  async copyGroceries(){
+    const text = db.groceries.filter(g => !g.done).map(g => '• ' + g.name + (g.qty ? ' (' + g.qty + ')' : '')).join('\n');
+    try { await navigator.clipboard.writeText(text); toast('List copied'); } catch (e) { toast("Couldn't copy on this device"); }
+  },
+  newMeal(){ state.mealEditing = 'new'; render(); window.scrollTo(0, 0); $('[data-form=saveMeal] [name=name]')?.focus(); },
+  editMeal(el, id){ state.mealEditing = id; render(); window.scrollTo(0, 0); },
+  cancelMeal(){ state.mealEditing = null; render(); },
+  toggleMeal(el, id){ state.mealOpen = state.mealOpen === id ? null : id; $('#mealsList').innerHTML = mealsListHTML(); },
+  delMeal(el, id){ if (!confirm('Delete this meal?')) return; db.meals = db.meals.filter(m => m.id !== id); save(); render(); },
+  mealToGroceries(el, id){
+    const m = db.meals.find(x => x.id === id); if (!m) return;
+    const have = new Set(db.groceries.filter(g => !g.done).map(g => g.name.toLowerCase()));
+    let n = 0;
+    m.ingredients.forEach(i => {
+      if (have.has(i.toLowerCase())) return;
+      db.groceries.push({id:uid(), name:i, qty:'', done:false, created:Date.now()}); have.add(i.toLowerCase()); n++;
+    });
+    save(); toast(n ? `Added ${n} item${n > 1 ? 's' : ''} to your grocery list` : 'Those are already on your list');
+  },
+
+  gymTab(el, id){ state.gymTab = id; render(); },
+  gymMetric(el, id){ state.gymMetric = id; render(); },
+  gymRange(el, id){ state.gymRange = id; render(); },
+  gymTable(){ state.gymTable = !state.gymTable; render(); },
+  moreHistory(){ state.gymHistory += 10; render(); },
+  addSetRow(){
+    const rows = document.querySelectorAll('#setRows .set-row'), last = rows[rows.length - 1];
+    const w = last ? last.querySelector('[name=w]').value : '', r = last ? last.querySelector('[name=r]').value : '';
+    $('#setRows').insertAdjacentHTML('beforeend', setRowHTML(rows.length + 1, w, r));
+  },
+  removeSetRow(el){
+    const rows = document.querySelectorAll('#setRows .set-row');
+    if (rows.length <= 1){ rows[0].querySelectorAll('input').forEach(i => i.value = ''); return; }
+    el.closest('.set-row').remove(); renumberSets();
+  },
+  useLast(el, id){
+    const l = db.lifts.find(x => x.id === id); if (!l) return;
+    $('#setRows').innerHTML = l.sets.map((s, i) => setRowHTML(i + 1, s.w || '', s.r)).join('');
+  },
+  delLift(el, id){
+    if (!confirm('Delete this entry?')) return;
+    db.lifts = db.lifts.filter(l => l.id !== id); save(); render();
+  },
+
+  exportData(){
+    const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `myhub-backup-${todayStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('Backup downloaded');
+  },
+  importData(){ $('#importFile').click(); },
+  wipeData(){
+    if (!confirm('Erase ALL data on this device? This cannot be undone.')) return;
+    if (!confirm('Are you sure? Consider exporting a backup first.')) return;
+    db = defaults(); save(); applyTheme(); $('#settings').close(); render(); toast('All data erased');
+  },
+};
+
+const FORM = {
+  quickTask(f, fd){ if (addTask(fd.get('title'))){ render(); toast('Task added'); } },
+  addTask(f, fd){
+    if (!addTask(fd.get('title'), fd.get('due'), fd.get('priority'))) return;
+    state.taskFilter = 'active'; render(); toast('Task added');
+    $('[data-form=addTask] [name=title]')?.focus();
+  },
+  addEvent(f, fd){
+    const title = fd.get('title').trim(); if (!title) return;
+    const date = fd.get('date') || state.calSel;
+    db.events.push({id:uid(), date, time:fd.get('time') || '', title, notes:fd.get('notes').trim(), created:Date.now()});
+    state.calSel = date; const d = parseYmd(date); state.calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+    save(); render(); toast('Event added');
+  },
+  addGrocery(f, fd){
+    const name = fd.get('name').trim(); if (!name) return;
+    db.groceries.push({id:uid(), name, qty:fd.get('qty').trim(), done:false, created:Date.now()});
+    save(); render(); $('[data-form=addGrocery] [name=name]')?.focus();
+  },
+  saveMeal(f, fd){
+    const data = {
+      name: fd.get('name').trim(),
+      tags: fd.get('tags').split(',').map(s => s.trim()).filter(Boolean),
+      ingredients: fd.get('ingredients').split('\n').map(s => s.trim().replace(/^[-•*]\s*/, '')).filter(Boolean),
+      method: fd.get('method').trim(),
+    };
+    if (!data.name) return;
+    if (state.mealEditing === 'new'){ const m = {id:uid(), ...data, created:Date.now()}; db.meals.push(m); state.mealOpen = m.id; }
+    else { Object.assign(db.meals.find(x => x.id === state.mealEditing), data); state.mealOpen = state.mealEditing; }
+    state.mealEditing = null; save(); render(); toast('Meal saved');
+  },
+  addLift(f, fd){
+    let ex = fd.get('exercise').trim(); const date = fd.get('date') || todayStr();
+    const sets = [...f.querySelectorAll('.set-row')].map(r => ({
+      w: Math.max(0, parseFloat(r.querySelector('[name=w]').value) || 0),
+      r: parseInt(r.querySelector('[name=r]').value, 10) || 0,
+    })).filter(s => s.r > 0);
+    if (!ex || !sets.length){ toast('Add an exercise and at least one set'); return; }
+    const existing = exerciseNames().find(n => sameEx(n, ex)); if (existing) ex = existing;
+    const prev = db.lifts.filter(l => sameEx(l.exercise, ex));
+    const prevBest = Math.max(0, ...prev.flatMap(l => l.sets.map(e1rm)));
+    const newBest = Math.max(...sets.map(e1rm));
+    db.lifts.push({id:uid(), date, exercise:ex, sets, created:Date.now()});
+    state.liftDate = date; state.gymExercise = ex; save(); render();
+    toast(prev.length && newBest > prevBest ? `New PR! Est. 1RM ${fmtNum(round1(newBest))} ${db.settings.unit}` : `${ex} saved`);
+  },
+};
+
+const CHANGE = {
+  toggleTask(el, id){
+    const x = db.tasks.find(t => t.id === id); if (!x) return;
+    x.done = el.checked; x.doneAt = x.done ? Date.now() : null; save();
+    setTimeout(render, 180);
+  },
+  toggleGrocery(el, id){
+    const g = db.groceries.find(x => x.id === id); if (!g) return;
+    g.done = el.checked; save(); setTimeout(render, 180);
+  },
+  gymExercise(el){ state.gymExercise = el.value; render(); },
+  setTheme(el){ db.settings.theme = el.value; save(); applyTheme(); },
+  setUnit(el){ db.settings.unit = el.value; save(); render(); },
+};
+
+const INPUT = {
+  noteSearch(el){ state.noteSearch = el.value; $('#notesList').innerHTML = notesListHTML(); },
+  noteTitle(el){ editNote({title: el.value}); },
+  noteBody(el){ editNote({body: el.value}); },
+  mealSearch(el){ state.mealSearch = el.value; $('#mealsList').innerHTML = mealsListHTML(); },
+  liftExercise(el){ updateLastTime(el.value); },
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const fn = ACT[el.dataset.act]; if (fn){ e.preventDefault(); fn(el, el.dataset.id, e); }
+});
+document.addEventListener('submit', e => {
+  const f = e.target.closest('form[data-form]'); if (!f) return;
+  e.preventDefault(); FORM[f.dataset.form]?.(f, new FormData(f));
+});
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-change]'); if (el) CHANGE[el.dataset.change]?.(el, el.dataset.id);
+});
+document.addEventListener('input', e => {
+  const el = e.target.closest('[data-input]'); if (el) INPUT[el.dataset.input]?.(el);
+});
+$('#importFile').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d || typeof d !== 'object' || !Array.isArray(d.tasks)) throw new Error('bad file');
+      if (!confirm('Replace everything on this device with this backup?')) return;
+      db = normalise(d); save(); applyTheme(); $('#settings').close(); render(); toast('Backup restored');
+    } catch (err) { toast("That file isn't a valid backup"); }
+    finally { e.target.value = ''; }
+  };
+  reader.readAsText(file);
+});
+// Make sure note edits are written before the tab closes / app is backgrounded
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
+window.addEventListener('pagehide', save);
+
+function applyTheme(){
+  const t = db.settings.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+
+/* =========================================================
+   Boot
+   ========================================================= */
+$('#gearBtn').innerHTML = I.gear;
+$('#closeBtn').innerHTML = I.x;
+applyTheme();
+{ const v = location.hash.slice(1); state.view = VIEWS.some(x => x.id === v) ? v : 'home'; }
+render();
+</script>
+</body>
+</html>
